@@ -8,6 +8,42 @@ const imageFolder = 'images';
 // Load data from Excel file
 const { sheet1, sheet2, sheet3 } = loadExcelData(filePath);
 
+// ฟังก์ชันคำนวณคะแนนรวมของร้านอาหารแต่ละร้าน
+const calculateRestaurantScores = (data) => {
+  const restaurantScores = {};
+
+  data.forEach(item => {
+    Object.keys(item).forEach(key => {
+      if (key.startsWith('ຮ້ານ')) {
+        if (!restaurantScores[key]) {
+          restaurantScores[key] = 0;
+        }
+        restaurantScores[key] += parseFloat(item['ຄະແນນ']) || 0;
+      }
+    });
+  });
+
+  return restaurantScores;
+};
+
+// Route to get top rated restaurants
+router.get('/topRatedRestaurants', (req, res) => {
+  try {
+    const restaurantScores = calculateRestaurantScores(sheet1);
+
+    // เรียงลำดับร้านอาหารตามคะแนนรวมจากมากไปน้อย
+    const sortedRestaurants = Object.entries(restaurantScores)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3) // เลือกเพียง 3 ร้านที่มีคะแนนสูงสุด
+      .map(entry => ({ restaurantName: entry[0], score: entry[1] }));
+
+    res.json(sortedRestaurants);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to load top rated restaurants');
+  }
+});
+
 // Route to get data from sheet1 with optional filtering by categories and other conditions
 router.get('/sheet1', (req, res) => {
   const categories = req.query.categories ? req.query.categories.split(',') : [];
